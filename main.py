@@ -1,18 +1,35 @@
-class TreeNode:
-    def __init__(self, val=0, left=None, right=None):
-        self.val = val
-        self.left = left
-        self.right = right
-
-class InstructionNode:
-    def __init__(self, addr, next_instr, label=None, val=0, arg1=None, arg2=None, arg3=None):
-        self.addr = addr
-        self.next_instr = next_instr
-        self.label = label
-        self.val = val
+class Instruction:
+    def __init__(self, instr_type, arg1=None, arg2=None, arg3=None):
+        self.instr_type = instr_type
         self.arg1 = arg1
         self.arg2 = arg2
         self.arg3 = arg3
+
+class Memory:
+    """
+    Represents a virtual memory space for memory access instructions.
+    RISC-V uses byte addressing, and we assume a 32-bit CPU.
+    This means to access the next word in memory, we add 4 to the address.
+    We can theoretically hold 2^30 different words.
+    For this purpose, there is also no need for a cache abstraction.
+    """
+    def __init__(self):
+        self.memory = {}
+
+    def get_value(self, addr):
+        assert addr <= 0xffffffff, 'addr out of bounds'
+        return self.memory[addr] if addr in self.memory.keys() else 0x0
+
+    def store_value(self, addr, value):
+        assert addr <= 0xffffffff, 'addr out of bounds'
+        self.memory[addr] = value
+
+    def clear(self):
+        self.memory = {}
+
+    def display(self):
+        # TODO: improve formatting later
+        print(self.memory)
 
 def tokenize_with_line_grouping(filename):
     """
@@ -41,38 +58,23 @@ def tokenize_with_line_grouping(filename):
 
 def parse_lines(tokenized_lines):
     """
-    Constructs a "tree" of InstructionNodes representing the instructions in tokenized_lines.
-    Note that the arguments "children" of each instruction are simply the primitive values,
-    not other Node objects. Returns the head, which is the address of the first line.
+    Constructs a list of Instructions representing the instructions in tokenized_lines.
+    Also constructs a dictionary mapping label names to indices of the list of Instructions.
+    Returns a tuple of the list and dictionary.
     """
-    line_addr = 0x0
-    line_label = None
-    head = None
-    num_lines = len(tokenized_lines)
-    for line_ix in range(num_lines):
-        line = tokenized_lines[line_ix]
-        next_instr = None if line_ix == num_lines - 1 else tokenized_lines[line_ix+1]
+    instructions = []
+    labels = {}
+    line_ix = 0
+    for line in tokenized_lines:
         match len(line):
             case 1:
-                assert line[0][-1] == ':', 'incorrect comment syntax'
-                line_label = line[0]
-            case 3:
-                instr = InstructionNode(line_addr, next_instr, line_label,
-                                        line[0], line[1], line[2])
-                if line_addr == 0x0:
-                    head = instr
-                line_addr += 0x4
-            case 4:
-                instr = InstructionNode(line_addr, next_instr, line_label,
-                                        line[0], line[1], line[2], line[3])
-                if line_addr == 0x0:
-                    head = instr
-                line_addr += 0x4
-            case _:
-                print(len(line))
-                raise Exception('incorrect line syntax')
-    return head
-
+                assert line[0][-1] == ':', 'incorrect label syntax'
+                labels[line[0][:-1]] = line_ix
+            case 3 | 4:
+                instr = Instruction(*line)
+                line_ix += 1
+                instructions.append(instr)
+    return instructions, labels
 
 
 
