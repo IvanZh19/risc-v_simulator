@@ -91,6 +91,62 @@ class Process:
             case 'bgeu':
                 branch = (self.registers[arg1_reg_num] >= self.registers[arg2_reg_num])
                 self.pc = self.labels[instr.arg3] * 4 if branch else self.pc + 0x4
+            case 'lb':
+                pass
+            case 'lh':
+                pass
+            case 'lw':
+                pass
+            case 'lbu':
+                pass
+            case 'lhu':
+                pass
+            case 'sb':
+                pass
+            case 'sh':
+                pass
+            case 'sw':
+                pass
+            case 'addi':
+                self.registers[arg1_reg_num] = self.registers[arg2_reg_num] + instr.arg3
+            case 'slti':
+                pass
+            case 'sltiu':
+                pass
+            case 'xori':
+                self.registers[arg1_reg_num] = self.registers[arg2_reg_num] ^ instr.arg3
+            case 'ori':
+                self.registers[arg1_reg_num] = self.registers[arg2_reg_num] | instr.arg3
+            case 'andi':
+                self.registers[arg1_reg_num] = self.registers[arg2_reg_num] & instr.arg3
+            case 'slli':
+                pass
+            case 'srli':
+                pass
+            case 'srai':
+                pass
+            case 'add':
+                self.registers[arg1_reg_num] = self.registers[arg2_reg_num] + self.registers[arg3_reg_num]
+            case 'sub':
+                self.registers[arg1_reg_num] = self.registers[arg2_reg_num] - self.registers[arg3_reg_num]
+            case 'sll':
+                pass
+            case 'slt':
+                pass
+            case 'sltu':
+                pass
+            case 'xor':
+                self.registers[arg1_reg_num] = self.registers[arg2_reg_num] ^ self.registers[arg3_reg_num]
+            case 'srl':
+                pass
+            case 'sra':
+                pass
+            case 'or':
+                self.registers[arg1_reg_num] = self.registers[arg2_reg_num] | self.registers[arg3_reg_num]
+            case 'and':
+                self.registers[arg1_reg_num] = self.registers[arg2_reg_num] & self.registers[arg3_reg_num]
+            case _:
+                raise Exception('unsupported operation')
 
 
 
@@ -156,5 +212,8 @@ def parse_lines(tokenized_lines):
 if __name__=='__main__':
     tokenized_lines = tokenize_with_line_grouping('src.asm')
     print(tokenized_lines)
-    parse_tree = parse_lines(tokenized_lines)
-    print(parse_tree)
+    instructions, labels = parse_lines(tokenized_lines)
+    memory = Memory()
+    process = Process(instructions, labels, memory)
+    for instr in instructions:
+        process.execute(instr)
