@@ -65,7 +65,7 @@ class Process:
         arg3_reg_num = register_numbers[instr.arg3] if instr.arg3 in register_numbers.keys() else 0
         match instr.instr_type:
             case 'lui':
-                self.registers[arg1_reg_num] = instr.arg2 << 12
+                self.registers[arg1_reg_num] = int(instr.arg2, 16) << 12
             case 'jal':
                 self.registers[arg1_reg_num] = self.pc + 0x4
                 self.pc = self.labels[instr.arg2]
@@ -108,17 +108,17 @@ class Process:
             case 'sw':
                 pass
             case 'addi':
-                self.registers[arg1_reg_num] = self.registers[arg2_reg_num] + instr.arg3
+                self.registers[arg1_reg_num] = self.registers[arg2_reg_num] + int(instr.arg3, 0)
             case 'slti':
                 pass
             case 'sltiu':
                 pass
             case 'xori':
-                self.registers[arg1_reg_num] = self.registers[arg2_reg_num] ^ instr.arg3
+                self.registers[arg1_reg_num] = self.registers[arg2_reg_num] ^ int(instr.arg3, 0)
             case 'ori':
-                self.registers[arg1_reg_num] = self.registers[arg2_reg_num] | instr.arg3
+                self.registers[arg1_reg_num] = self.registers[arg2_reg_num] | int(instr.arg3, 0)
             case 'andi':
-                self.registers[arg1_reg_num] = self.registers[arg2_reg_num] & instr.arg3
+                self.registers[arg1_reg_num] = self.registers[arg2_reg_num] & int(instr.arg3, 0)
             case 'slli':
                 pass
             case 'srli':
@@ -217,3 +217,4 @@ if __name__=='__main__':
     process = Process(instructions, labels, memory)
     for instr in instructions:
         process.execute(instr)
+        print(process.registers)
