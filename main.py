@@ -20,17 +20,18 @@ class Memory:
     Represents a virtual memory space for memory access instructions.
     RISC-V uses byte addressing, and we assume a 32-bit CPU.
     This means to access the next word in memory, we add 4 to the address.
+    Each 32-bit address points to a byte in memory.
     We can theoretically hold 2^30 different words.
     For this purpose, there is also no need for a cache abstraction.
     """
     def __init__(self):
         self.memory = {}
 
-    def get_value(self, addr):
+    def get_word(self, addr):
         assert addr <= 0xffffffff, 'addr out of bounds'
         return self.memory[addr] if addr in self.memory.keys() else 0x0
 
-    def store_value(self, addr, value):
+    def store_word(self, addr, value):
         assert addr <= 0xffffffff, 'addr out of bounds'
         self.memory[addr] = value
 
@@ -71,7 +72,10 @@ class Process:
                 self.pc = self.labels[instr.arg2]
             case 'jalr':
                 self.registers[arg1_reg_num] = self.pc + 0x4
-                # TODO: parse offset(rs1) to update pc
+                # assuming well formed offset(rs1)
+                offset = int(instr.arg2.split('(')[0], 0)
+                arg2_reg_num = register_numbers[instr.arg2.split('(')[:-1]]
+                self.pc = (self.registers[arg2_reg_num] + offset) & ~1 # to zero the last bit
             case 'beq':
                 branch = (self.registers[arg1_reg_num] == self.registers[arg2_reg_num])
                 self.pc = self.labels[instr.arg3] * 4 if branch else self.pc + 0x4
@@ -88,6 +92,7 @@ class Process:
                 branch = (self.registers[arg1_reg_num] < self.registers[arg2_reg_num])
                 self.pc = self.labels[instr.arg3] * 4 if branch else self.pc + 0x4
                 # TODO: handle signed and unsigned operations, this and bgeu
+                # python ints are always signed
             case 'bgeu':
                 branch = (self.registers[arg1_reg_num] >= self.registers[arg2_reg_num])
                 self.pc = self.labels[instr.arg3] * 4 if branch else self.pc + 0x4
@@ -110,7 +115,8 @@ class Process:
             case 'addi':
                 self.registers[arg1_reg_num] = self.registers[arg2_reg_num] + int(instr.arg3, 0)
             case 'slti':
-                pass
+                compare = (self.registers[arg2_reg_num] < int(instr.arg3, 0))
+                self.registers[arg1_reg_num] = 1 if compare else 0
             case 'sltiu':
                 pass
             case 'xori':
@@ -120,19 +126,21 @@ class Process:
             case 'andi':
                 self.registers[arg1_reg_num] = self.registers[arg2_reg_num] & int(instr.arg3, 0)
             case 'slli':
-                pass
+                self.registers[arg1_reg_num] = self.registers[arg2_reg_num] << int(instr.arg3, 0)
             case 'srli':
                 pass
             case 'srai':
-                pass
+                self.registers[arg1_reg_num] = self.registers[arg2_reg_num] >> int(instr.arg3, 0)
             case 'add':
                 self.registers[arg1_reg_num] = self.registers[arg2_reg_num] + self.registers[arg3_reg_num]
             case 'sub':
                 self.registers[arg1_reg_num] = self.registers[arg2_reg_num] - self.registers[arg3_reg_num]
             case 'sll':
-                pass
+                shamt = self.registers[arg3_reg_num] & 0b11111
+                self.registers[arg1_reg_num] = self.registers[arg2_reg_num] << shamt
             case 'slt':
-                pass
+                compare = (self.registers[arg2_reg_num] < self.registers[arg3_reg_num])
+                self.registers[arg1_reg_num] = 1 if compare else 0
             case 'sltu':
                 pass
             case 'xor':
@@ -140,7 +148,8 @@ class Process:
             case 'srl':
                 pass
             case 'sra':
-                pass
+                shamt = self.registers[arg3_reg_num] & 0b11111
+                self.registers[arg1_reg_num] = self.registers[arg2_reg_num] >> shamt
             case 'or':
                 self.registers[arg1_reg_num] = self.registers[arg2_reg_num] | self.registers[arg3_reg_num]
             case 'and':
@@ -210,7 +219,7 @@ def parse_lines(tokenized_lines):
 
 
 if __name__=='__main__':
-    tokenized_lines = tokenize_with_line_grouping('src.asm')
+    tokenized_lines = tokenize_with_line_grouping('test.asm')
     print(tokenized_lines)
     instructions, labels = parse_lines(tokenized_lines)
     memory = Memory()
